@@ -1,0 +1,381 @@
+---
+title: "Problem Set 2"
+format: html
+execute: 
+  fig-width: 12
+  fig-height: 8
+---
+
+## Quarto
+
+Corey White
+Austin Hart 
+Problem Set 2
+SIS 750
+18 February, 2026
+
+
+```{r}
+#loading Packages and Data
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(haven)
+```
+
+PROBLEM 1
+```{r}
+#Replicating Plot 1 -----
+df<-read.csv("la_turnout_basic.csv")
+#making a dummy variable
+dfmutate <- df |>
+mutate(
+  clausetype = if_else(understandingclause2 == 0, 'control', 'treated')
+)
+#making the plot data
+dfmutate1 <- dfmutate |>
+select(year, blackregrate, whiteregrate, clausetype) |>
+filter(!is.na(blackregrate)) |>
+filter(!is.na(whiteregrate)) |>
+group_by(clausetype)
+dfmutate2 <- dfmutate1 |>
+  group_by(year, clausetype) |>
+  summarise(
+    avgblackreg = mean(blackregrate, na.rm = TRUE),
+    avgwhitereg = mean(whiteregrate, na.rm = TRUE)
+  )
+
+
+#making the ggplot for black voters
+atable <- dfmutate2 |>
+ggplot(aes(x = year, y = avgblackreg)) +
+  geom_point(aes(shape = clausetype))+
+  geom_line(aes(color = clausetype)) +
+  theme_classic()+
+  scale_x_continuous(
+    limits = c(1950, 1970), 
+    breaks = seq(1950, 1975, 5),
+    expand = expansion(mult = c(.05, .1))
+  ) +
+  scale_y_continuous(
+    limits = c(0, .65),
+    expand = expansion(mult = c(0, .01))
+  )+
+  scale_color_manual(
+    values = c('purple4', 'yellow2')
+  )+
+  theme(
+    panel.grid.major = element_line(color = 'grey'),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = 'white'),
+    legend.position = 'right',
+    plot.background = element_rect(fill= 'white'),
+    legend.title = element_blank(),
+    panel.border = element_rect(fill = NA, colour = 'black')
+  ) +
+labs(
+  y = 'Black Registration Rate',
+  plot.title = 'Suppressing Black Votes:',
+  plot.subtitle = 'A Historical Case Study of Voting Restrictions in Louisiana',
+  x= 'Year
+  (a) Black Registration'
+)
+
+#white voters
+btable <- dfmutate2 |>
+  ggplot(aes(x = year, y = avgwhitereg)) +
+  geom_point(aes(shape = clausetype))+
+  geom_line(aes(color = clausetype, group = clausetype))+
+  theme_classic()+
+  scale_x_continuous(
+    limits = c(1950, 1970), 
+    breaks = seq(1950, 1975, 5),
+    expand = expansion(mult = c(.05, .1))
+  ) +
+  scale_y_continuous(
+    limits = c(.55, 1)
+  ) +
+  scale_color_manual(
+    values = c('purple4', 'yellow2')
+  )+
+  theme(
+    panel.grid.major = element_line(color = 'grey'),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = 'white'),
+    legend.position = 'right',
+    legend.title = element_blank(),
+    panel.border = element_rect(fill = NA, colour = 'black')
+  ) +
+  labs(
+    y = 'White Registration Rate',
+    plot.title = 'Suppressing Black Votes:',
+    plot.subtitle = 'A Historical Case Study of Voting Restrictions in Louisiana',
+    x= 'Year
+  (b) White Registration'
+  )
+
+
+#combining the tables 
+ctable <- atable + btable
+(ctable)
+```
+
+
+
+PROBLEM 2 
+```{r}
+#Reading and tidying Nate Silver's data
+dfnate <- read_csv('kSCt4.csv')
+
+natemutate <- dfnate |>
+  mutate(date1 = as.Date(modeldate, format = '%m/%d/%Y'))
+
+#making the plot 
+plotnate <- natemutate |>
+ggplot(aes(x = date1, y = approve )) +
+  geom_line(aes( y = approve_lo, linetype = 'approve_lo', linewidth = 'approve_lo'), color = 'lightblue') +
+  geom_line(aes( y = approve_hi, linetype = 'approve_hi', linewidth = 'approve_hi' ), color = 'lightblue')+
+  geom_line(aes( y = approve, linetype = 'approve', linewidth = 'approve'), color = 'lightblue4')+
+  geom_line(aes( y = disapprove, linetype = 'disapprove', linewidth = 'disapprove'), color = 'orange3') +
+  geom_line(aes( y = disapprove_lo, linetype = 'disapprove_lo', linewidth = 'disapprove_lo'), color = 'orange') +
+  geom_line(aes( y = disapprove_hi, linetype =  'disapprove_hi', linewidth = 'disapprove_hi'), color = 'orange') +
+  geom_ribbon(aes(ymin = approve_lo, ymax = approve_hi), fill = 'lightblue3', alpha = .5 )+
+  geom_ribbon(aes(ymin = disapprove_lo, ymax = disapprove_hi), fill = 'salmon2', alpha = .5) +
+  geom_hline(yintercept = 50, color = 'black', linetype = 'solid', size = .5)+
+  scale_linetype_manual(
+    values = c(
+      approve = 'solid',
+      approve_lo = 'dotted',
+      approve_hi = 'dotted',
+      disapprove = 'solid',
+      disapprove_lo ='dotted',
+      disapprove_hi = 'dotted'
+    )) +
+  scale_linewidth_manual(values = c(
+    approve = 1,
+    approve_lo = 1,
+    disapprove = 1,
+    disapprove_lo =1,
+    disapprove_hi =1,
+    approve_hi = 1
+  )) +
+  scale_x_date(
+    date_breaks = '3 months',
+    date_labels = '%b',
+    expand = expansion(mult = c(0, .01))
+  )+
+  scale_y_continuous(
+    limits = c(30, 70),
+      expand = expansion(mult = c(0, .01))
+    ) +
+  labs(
+    title = 'Do Americans approve or disapprove of Donald Trump?',
+    subtitle = 'An updating polling average of Donald Trumps approval rating and disapproval rating in his second term, accounting 
+    for each polls quality, recency, sample size, and partisan lean',
+    caption = 'Note: 90% of polls are projected to fall within the shaded regions.'
+  ) +
+  theme(
+    legend.position = 'none',
+    panel.grid.major = element_line(color = 'lightgrey'),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = 'white'),
+    title = element_text(face = 'bold', size = 18),
+    plot.subtitle = element_text(face = 'plain', size = 12),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text = element_text(colour = 'darkgrey'),
+    scale_x_continuous(
+      labels = c('Apr\2025', 'Jul', 'Oct', 'Jan\2026')
+    ),
+    plot.caption = element_text(size = 9, face = 'italic', hjust = 0)
+  )
+
+(plotnate)
+```
+
+PROBLEM 3
+
+Here I worked with Seshat's Data on Social Complexity, narrowed to six periods in Ancient Egyptian histor.
+
+```{r}
+#Tidying Seshat Data
+library(readxl)
+Seshat <- read_excel('seshat.xlsx')
+egypt <- Seshat |>
+  filter(NGA == 'Upper Egypt')
+
+eg1 <- egypt |>
+  filter(NGA == 'Upper Egypt', Polity == 'EgDyn1*' | Polity =='EgDyn2*' | Polity == 'EgOldK1' | Polity == 'EgOldK2' | Polity == 'EgRegns' | Polity == 'EgNaqa3') 
+eg2 <- eg1 |>
+  filter(Variable == 'Polity territory' | Variable == 'Polity Population' |Variable == 'Largest communication distance' | Variable == 'Fastest individual communication' | Variable == 'Population of the largest settlement' )
+
+egdata <- eg2 |>
+group_by(Polity, Variable)
+
+#plotting population 
+
+popplot <- egdata |>
+  mutate(Polity2 = factor(Polity, levels = c('EgNaqa3', 'EgDyn1*', 'EgDyn2*', 'EgOldK1', 'EgOldK2', 'EgRegns'))) |>
+  filter(Variable == 'Polity Population') |>
+  mutate(`Value From` = as.numeric(`Value From`)) |>
+  ggplot(aes(x = Polity2, y = `Value From`, fill = Polity)) +
+geom_col(color = 'darkgrey', size = .6) +
+  labs(
+    x = '(a) Total Polity Population',
+    y = 'Maximum Population'
+  ) +
+  scale_fill_manual(
+    values = c('yellow4','yellow4','yellow4','yellow4','yellow4','yellow4')
+  )+
+  scale_x_discrete(
+    labels = c(
+      'EgNaqa3' = 'Predynastic Period',
+      'EgDyn1*' = 'Dynasty I',
+      'EgDyn2*' = 'Dynasty II',
+      'EgOldK1' = 'Early 
+        Old Kingdom',
+      'EgOldK2' = 'Late 
+        Old Kingdom',
+      'EgRegns' = 'First
+      Intermediate
+      Period'
+    )
+  ) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, .01))) +
+  theme(
+    panel.grid.major = element_line(colour = 'lightgrey'),
+    panel.border = element_rect(fill = NA, colour = 'black'),
+    legend.position = 'none',
+    panel.background = element_rect(fill = 'white')
+  )
+
+(popplot)
+#territory plot
+  terrplota <- egdata |>
+  mutate(Polity2 = factor(Polity, levels = c('EgNaqa3', 'EgDyn1*', 'EgDyn2*', 'EgOldK1', 'EgOldK2', 'EgRegns'))) |>
+  filter(Variable == 'Polity territory') |>
+  mutate(`Value From` = as.numeric(`Value From`)) |>
+    group_by(Polity2) |>
+    summarise(frommax = max(`Value From`, na.rm = TRUE)) 
+  
+terrplot <- 
+  ggplot(terrplota, aes(x = Polity2,  y = frommax, fill = Polity2)) +
+    geom_col(color = 'darkgrey', size = .6) +
+    scale_y_continuous(
+      labels = scales::label_comma(), 
+      expand = expansion(mult = c(0, .01)))+
+      labs(
+        x = '(c) Territorial Extent of Polities',
+        y = 'Maximum Territory, in KM2'
+      ) +
+  scale_x_discrete(
+    labels = c(
+      'EgNaqa3' = 'Predynastic Period',
+      'EgDyn1*' = 'Dynasty I',
+      'EgDyn2*' = 'Dynasty II',
+      'EgOldK1' = 'Early 
+        Old Kingdom',
+      'EgOldK2' = 'Late 
+        Old Kingdom',
+      'EgRegns' = 'First Intermediate
+    Period'
+    )
+  ) +
+  scale_fill_manual(
+    values = c('navy','navy','navy','navy','navy','navy')
+  )+
+  theme(
+    panel.grid.major = element_line(colour = 'lightgrey'),
+    panel.border = element_rect(fill = NA, colour = 'black'),
+    legend.position = 'none',
+    panel.background = element_rect(fill = 'white')
+  )
+(terrplot)
+#settlement population plot
+setpopplota <- egdata |>
+  mutate(Polity2 = factor(Polity, levels = c('EgNaqa3', 'EgDyn1*', 'EgDyn2*', 'EgOldK1', 'EgOldK2', 'EgRegns'))) |>
+  filter(Variable == 'Population of the largest settlement') |>
+  mutate(`Value From` = as.numeric(`Value From`)) |>
+  group_by(Polity2) |>
+  summarise(frommax = max(`Value From`, na.rm = TRUE)) 
+
+setpopplot <- 
+  ggplot(setpopplota, aes(x = Polity2,  y = frommax, fill = Polity2)) +
+  geom_col(color = 'darkgrey', size = .6) +
+  scale_y_continuous(
+    labels = scales::label_comma(), 
+    expand = expansion(mult = c(0, .01)))+
+  labs(
+    x = ' (b) Settlement Population',
+    y = 'Population of the Largest Settlement'
+  ) +
+  scale_x_discrete(
+    labels = c(
+      'EgNaqa3' = 'Predynastic Period',
+      'EgDyn1*' = 'Dynasty I',
+      'EgDyn2*' = 'Dynasty II',
+      'EgOldK1' = 'Early 
+        Old Kingdom',
+      'EgOldK2' = 'Late 
+        Old Kingdom',
+      'EgRegns' = 'First Intermediate
+    Period'
+    )
+  ) +
+  scale_fill_manual(
+    values = c('yellow4','yellow4','yellow4','yellow4','yellow4','yellow4')
+  )+
+  theme(
+    panel.grid.major = element_line(colour = 'lightgrey'),
+    panel.border = element_rect(fill = NA, colour = 'black'),
+    legend.position = 'none',
+    panel.background = element_rect(fill = 'white')
+  )
+(setpopplot)
+#combining
+egcombine <- popplot + setpopplot + terrplot +
+  plot_annotation(
+  title = 'Population and Territory in Ancient Egypt', 
+  subtitle = 'From Predynastic Egypt to the First Intermediate Period (3,300-2,055 BCE)',
+  theme = theme(
+    plot.title = element_text(size = 18, face = 'bold', hjust =.0),
+    plot.subtitle = element_text(face = 'italic', hjust = .1)
+  )
+  
+)
+(egcombine)
+
+```
+
+Explaining the Seshat Data:
+This Dataset measures factors of social complexity across various dynasties in ancient Upper Egypt. It measures factors like personal communication time, settlement population, and markers of socioeconomic complexity. Published by the Sehat Project, this dataset covers roughly 80 indicators of societal development, which have here been narrowed for the purpose of understanding the progression of Egypt’s early history. The attached graphs show three measurements across each dynasty, starting from the predynastic Naqada III period circa 3,300 BCE to the end of the First Intermediate Period that followed the collapse of the Old Kingdom circa 2,2000 BCE. This data gives insight into how the collapse of the old kingdom in Upper Egypt was marked by the emergence of strong regional powers and the decline of centralized authority. From the predynastic period, the population of Upper Egypt was steadily increasing. The unification by Upper-Egyptian king Narmer, the first Pharaoh of Dynasty I, brought peace and population boom. Through the Old Kingdom, population steadily increased. As the Old Kingdom declined, however, central authority began to wane, and regional governors asserted control over the provinces, known as Nomes. The graphs of settlement population and polity territorial extent show the decline in Upper Egypt’s relationship with the Old Kingdom state. 
+The juxtaposition of increasing total population and decreasing settlement population is the key indicator of declining central authority. The Pharaoh was unable to maintain large cities for priests and traders, and regional rivalries dispersed populations. Rurification in a period of overall population increase may suggest that more people moved to yeoman farms or those owned by temples as a response to a failing economy, or indeed climate change, as some historians suggest. Lastly, the graph of polity territorial extent shows how Upper Egypt slowly broke away from the Delta. This graph is the only visual to contain a measurement for the Intermediate Period. As Upper Egypt decentralized into independent states, the maximum extent of the states were commensurate with their provincial divisions, as is noted by the sharp decline in the territorial extent data. 
+A second throughline visible to astute Egyptologists is the overall shift in power away from Upper Egypt and towards the Delta as the Old Kingdom progressed. The unification of Egypt came from Upper Egypt, and Egypt was ruled from the South for several hundred years before the capital was moved to Memphis in the Delta. This data thus acts as both primary evidence for a decline in centralized authority at the end of the Old Kingdom, as well as secondary supporting evidence for historians’ qualitative conclusions that the government in the North was unable to assert power over the South at the end of the Old Kingdom, directly leading to the empowering of regional Nomarchs and the eventually breakdown of the state.
+
+
+APPENDIX:
+AI tool used: ChatGPT
+Prompt: How do I disable scientific notation on my ggplot Y axis in Rstudio?
+
+Output, narrowed to the option I incorporated in my 'Territory' plot:
+
+  Option 2: Format only the Y axis (recommended for ggplot)
+
+  Using scales formatting:
+
+  library(ggplot2)
+  library(scales)
+
+ ggplot(df, aes(x, y)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::label_comma())
+
+  This:
+  Removes scientific notation
+  Adds commas (e.g., 1,000,000 instead of 1000000)
+  If you don’t want commas, use:
+  scale_y_continuous(labels = label_number())
+
+  

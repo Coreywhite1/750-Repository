@@ -1,0 +1,45 @@
+---
+title: "index"
+format: revealjs
+---
+
+asdasdssss
+sss
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+df <- read.csv('SDI.csv')  
+```
+Corey's Analysis Slide:
+Next I mapped the democracy index in Sur, Mexico by state.
+```{r}
+df2<- df |>
+  select( 
+    country_name,
+    state_name,
+    region_name,
+    year,
+    SUR_index_sub_exe
+  ) |> 
+  mutate(Democracy = SUR_index_sub_exe) |>
+  filter(country_name == 'MEXICO', region_name == 'SUR' )
+
+plot1 <- df2 |>
+  ggplot(aes(x = year, y = Democracy))+
+  geom_line(aes(colour = state_name)) +
+  labs(
+    title = 'Democracy in Sur, Mexico by State',
+    x = 'Democracy Score',
+    y = 'Year',
+    legend = 'State name'
+  ) +
+  theme(
+    panel.grid.major = element_line(color = 'lightgrey'),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = 'white'),
+    title = element_text(face = 'bold', size = 12))
+plot1
+```

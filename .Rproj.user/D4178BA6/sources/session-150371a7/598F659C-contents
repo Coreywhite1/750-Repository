@@ -1,0 +1,328 @@
+#Corey White
+#Austin Hart 
+#Problem Set 2
+#SIS 750
+#18 February, 2026
+
+#packages and data
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(haven)
+
+#Replicating Plot 1 -----
+df<-read.csv("la_turnout_basic.csv")
+#making a dummy variable
+dfmutate <- df |>
+mutate(
+  clausetype = if_else(understandingclause2 == 0, 'control', 'treated')
+)
+#making the plot data
+dfmutate1 <- dfmutate |>
+select(year, blackregrate, whiteregrate, clausetype) |>
+filter(!is.na(blackregrate)) |>
+filter(!is.na(whiteregrate)) |>
+group_by(clausetype)
+dfmutate2 <- dfmutate1 |>
+  group_by(year, clausetype) |>
+  summarise(
+    avgblackreg = mean(blackregrate, na.rm = TRUE),
+    avgwhitereg = mean(whiteregrate, na.rm = TRUE)
+  )
+
+
+#making the ggplot for black voters
+atable <- dfmutate2 |>
+ggplot(aes(x = year, y = avgblackreg)) +
+  geom_point(aes(shape = clausetype))+
+  geom_line(aes(color = clausetype)) +
+  theme_classic()+
+  scale_x_continuous(
+    limits = c(1950, 1970), 
+    breaks = seq(1950, 1975, 5),
+    expand = expansion(mult = c(.05, .1))
+  ) +
+  scale_y_continuous(
+    limits = c(0, .65),
+    expand = expansion(mult = c(0, .01))
+  )+
+  scale_color_manual(
+    values = c('purple4', 'yellow2')
+  )+
+  theme(
+    panel.grid.major = element_line(color = 'grey'),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = 'white'),
+    legend.position = 'right',
+    plot.background = element_rect(fill= 'white'),
+    legend.title = element_blank(),
+    panel.border = element_rect(fill = NA, colour = 'black')
+  ) +
+labs(
+  y = 'Black Registration Rate',
+  plot.title = 'Suppressing Black Votes:',
+  plot.subtitle = 'A Historical Case Study of Voting Restrictions in Louisiana',
+  x= 'Year
+  (a) Black Registration'
+)
+
+#white voters
+btable <- dfmutate2 |>
+  ggplot(aes(x = year, y = avgwhitereg)) +
+  geom_point(aes(shape = clausetype))+
+  geom_line(aes(color = clausetype, group = clausetype))+
+  theme_classic()+
+  scale_x_continuous(
+    limits = c(1950, 1970), 
+    breaks = seq(1950, 1975, 5),
+    expand = expansion(mult = c(.05, .1))
+  ) +
+  scale_y_continuous
+    limits = c(.55, 1)
+   +
+  scale_color_manual(
+    values = c('purple4', 'yellow2')
+  )+
+  theme(
+    panel.grid.major = element_line(color = 'grey'),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = 'white'),
+    legend.position = 'right',
+    legend.title = element_blank(),
+    panel.border = element_rect(fill = NA, colour = 'black')
+  ) +
+  labs(
+    y = 'White Registration Rate',
+    plot.title = 'Suppressing Black Votes:',
+    plot.subtitle = 'A Historical Case Study of Voting Restrictions in Louisiana',
+    x= 'Year
+  (b) White Registration'
+  )
+(btable)
+#combining the tables 
+ctable <- atable + btable
+(ctable)
+
+
+
+
+#QUESTION 2 ----
+dfnate <- read_csv('kSCt4.csv')
+
+
+natemutate <- dfnate |>
+  mutate(date1 = as.Date(modeldate, format = '%m/%d/%Y'))
+
+#making the plot 
+plotnate <- natemutate |>
+ggplot(aes(x = date1, y = approve )) +
+  geom_line(aes( y = approve_lo, linetype = 'approve_lo', linewidth = 'approve_lo'), color = 'lightblue') +
+  geom_line(aes( y = approve_hi, linetype = 'approve_hi', linewidth = 'approve_hi' ), color = 'lightblue')+
+  geom_line(aes( y = approve, linetype = 'approve', linewidth = 'approve'), color = 'lightblue4')+
+  geom_line(aes( y = disapprove, linetype = 'disapprove', linewidth = 'disapprove'), color = 'orange3') +
+  geom_line(aes( y = disapprove_lo, linetype = 'disapprove_lo', linewidth = 'disapprove_lo'), color = 'orange') +
+  geom_line(aes( y = disapprove_hi, linetype =  'disapprove_hi', linewidth = 'disapprove_hi'), color = 'orange') +
+  geom_ribbon(aes(ymin = approve_lo, ymax = approve_hi), fill = 'lightblue3', alpha = .5 )+
+  geom_ribbon(aes(ymin = disapprove_lo, ymax = disapprove_hi), fill = 'salmon2', alpha = .5) +
+  geom_hline(yintercept = 50, color = 'black', linetype = 'solid', size = .5)+
+  scale_linetype_manual(
+    values = c(
+      approve = 'solid',
+      approve_lo = 'dotted',
+      approve_hi = 'dotted',
+      disapprove = 'solid',
+      disapprove_lo ='dotted',
+      disapprove_hi = 'dotted'
+    )) +
+  scale_linewidth_manual(values = c(
+    approve = 1,
+    approve_lo = 1,
+    disapprove = 1,
+    disapprove_lo =1,
+    disapprove_hi =1,
+    approve_hi = 1
+  )) +
+  scale_x_date(
+    date_breaks = '3 months',
+    date_labels = '%b',
+    expand = expansion(mult = c(0, .01))
+  )+
+  scale_y_continuous(
+    limits = c(30, 70),
+      expand = expansion(mult = c(0, .01))
+    ) +
+  labs(
+    title = 'Do Americans approve or disapprove of Donald Trump?',
+    subtitle = 'An updating polling average of Donald Trumps approval rating and disapproval rating in his second term, accounting 
+    for each polls quality, recency, sample size, and partisan lean',
+    caption = 'Note: 90% of polls are projected to fall within the shaded regions.'
+  ) +
+  theme(
+    legend.position = 'none',
+    panel.grid.major = element_line(color = 'lightgrey'),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = 'white'),
+    title = element_text(face = 'bold', size = 18),
+    plot.subtitle = element_text(face = 'plain', size = 12),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text = element_text(colour = 'darkgrey'),
+    scale_x_continuous(
+      labels = c('Apr\2025', 'Jul', 'Oct', 'Jan\2026')
+    ),
+    plot.caption = element_text(size = 9, face = 'italic', hjust = 0)
+  )
+
+(plotnate)
+
+ #Question 3----  
+
+#Tidying Seshat Data
+library(readxl)
+Seshat <- read_excel('seshat.xlsx')
+egypt <- Seshat |>
+  filter(NGA == 'Upper Egypt')
+egtest <- egypt |>
+  filter(NGA == 'Upper Egypt', Polity == 'EgDyn1*' | Polity =='EgDyn2*' | Polity == 'EgOldK1' | Polity == 'EgOldK2' | Polity == 'EgRegns' | Polity == 'EgNaqa3') 
+egtest2 <- egtest |>
+  filter(Variable == 'Polity territory' | Variable == 'Polity Population' |Variable == 'Largest communication distance' | Variable == 'Fastest individual communication' | Variable == 'Population of the largest settlement' )
+
+egdata <- egtest2 |>
+group_by(Polity, Variable)
+
+#plotting population 
+
+popplot <- egdata |>
+  mutate(Polity2 = factor(Polity, levels = c('EgNaqa3', 'EgDyn1*', 'EgDyn2*', 'EgOldK1', 'EgOldK2', 'EgRegns'))) |>
+  filter(Variable == 'Polity Population') |>
+  mutate(`Value From` = as.numeric(`Value From`)) |>
+  ggplot(aes(x = Polity2, y = `Value From`, fill = Polity)) +
+geom_col(color = 'darkgrey', size = .6) +
+  labs(
+    x = '(a) Total Polity Population',
+    y = 'Maximum Population'
+  ) +
+  scale_fill_manual(
+    values = c('yellow4','yellow4','yellow4','yellow4','yellow4','yellow4')
+  )+
+  scale_x_discrete(
+    labels = c(
+      'EgNaqa3' = 'Predynastic Period',
+      'EgDyn1*' = 'Dynasty I',
+      'EgDyn2*' = 'Dynasty II',
+      'EgOldK1' = 'Early 
+        Old Kingdom',
+      'EgOldK2' = 'Late 
+        Old Kingdom',
+      'EgRegns' = 'First
+      Intermediate
+      Period'
+    )
+  ) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, .01))) +
+  theme(
+    panel.grid.major = element_line(colour = 'lightgrey'),
+    panel.border = element_rect(fill = NA, colour = 'black'),
+    legend.position = 'none',
+    panel.background = element_rect(fill = 'white')
+  )
+(popplot)
+#territory plot
+  terrplota <- egdata |>
+  mutate(Polity2 = factor(Polity, levels = c('EgNaqa3', 'EgDyn1*', 'EgDyn2*', 'EgOldK1', 'EgOldK2', 'EgRegns'))) |>
+  filter(Variable == 'Polity territory') |>
+  mutate(`Value From` = as.numeric(`Value From`)) |>
+    group_by(Polity2) |>
+    summarise(frommax = max(`Value From`, na.rm = TRUE)) 
+  
+terrplot <- 
+  ggplot(terrplota, aes(x = Polity2,  y = frommax, fill = Polity2)) +
+    geom_col(color = 'darkgrey', size = .6) +
+    scale_y_continuous(
+      labels = scales::label_comma(), 
+      expand = expansion(mult = c(0, .01)))+
+      labs(
+        x = '(c) Territorial Extent of Polities',
+        y = 'Maximum Territory, in KM2'
+      ) +
+  scale_x_discrete(
+    labels = c(
+      'EgNaqa3' = 'Predynastic Period',
+      'EgDyn1*' = 'Dynasty I',
+      'EgDyn2*' = 'Dynasty II',
+      'EgOldK1' = 'Early 
+        Old Kingdom',
+      'EgOldK2' = 'Late 
+        Old Kingdom',
+      'EgRegns' = 'First Intermediate
+    Period'
+    )
+  ) +
+  scale_fill_manual(
+    values = c('navy','navy','navy','navy','navy','navy')
+  )+
+  theme(
+    panel.grid.major = element_line(colour = 'lightgrey'),
+    panel.border = element_rect(fill = NA, colour = 'black'),
+    legend.position = 'none',
+    panel.background = element_rect(fill = 'white')
+  )
+      
+#setpop plot
+setpopplota <- egdata |>
+  mutate(Polity2 = factor(Polity, levels = c('EgNaqa3', 'EgDyn1*', 'EgDyn2*', 'EgOldK1', 'EgOldK2', 'EgRegns'))) |>
+  filter(Variable == 'Population of the largest settlement') |>
+  mutate(`Value From` = as.numeric(`Value From`)) |>
+  group_by(Polity2) |>
+  summarise(frommax = max(`Value From`, na.rm = TRUE)) 
+
+setpopplot <- 
+  ggplot(setpopplota, aes(x = Polity2,  y = frommax, fill = Polity2)) +
+  geom_col(color = 'darkgrey', size = .6) +
+  scale_y_continuous(
+    labels = scales::label_comma(), 
+    expand = expansion(mult = c(0, .01)))+
+  labs(
+    x = ' (b) Settlement Population',
+    y = 'Population of the Largest Settlement'
+  ) +
+  scale_x_discrete(
+    labels = c(
+      'EgNaqa3' = 'Predynastic Period',
+      'EgDyn1*' = 'Dynasty I',
+      'EgDyn2*' = 'Dynasty II',
+      'EgOldK1' = 'Early 
+        Old Kingdom',
+      'EgOldK2' = 'Late 
+        Old Kingdom',
+      'EgRegns' = 'First Intermediate
+    Period'
+    )
+  ) +
+  scale_fill_manual(
+    values = c('yellow4','yellow4','yellow4','yellow4','yellow4','yellow4')
+  )+
+  theme(
+    panel.grid.major = element_line(colour = 'lightgrey'),
+    panel.border = element_rect(fill = NA, colour = 'black'),
+    legend.position = 'none',
+    panel.background = element_rect(fill = 'white')
+  )
+(setpopplot)
+#combining
+egcombine <- popplot + setpopplot + terrplot +
+  plot_annotation(
+  title = 'Population and Territory in Ancient Egypt', 
+  subtitle = 'From Predynastic Egypt to the First Intermediate Period (3,300-2,055 BCE)',
+  theme = theme(
+    plot.title = element_text(size = 18, face = 'bold', hjust =.0),
+    plot.subtitle = element_text(face = 'italic', hjust = .1)
+  )
+  
+)
+(egcombine)
+#ai i used: How do I disable scientific notation on my ggplot Y axis?
+#how do I force ggplot to output the maximum value of a variable with several observations instead of adding them together? 
+  

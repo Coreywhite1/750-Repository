@@ -1,0 +1,194 @@
+library(dplyr)
+library(tidyverse)
+library(patchwork)
+
+#+ today-----
+#+ today:
+#+ labels, scales, and themes for plots 
+#+ what makes a bad plot?
+#+ 
+# Data
+df <- gapminder::gapminder |>
+  filter(continent == 'Americas') |>
+  mutate(
+    g20 = if_else(
+      country %in% c('Argentina', 'Bazil', 'Canada', 'Mexico',
+                     'United States', 'Puerto Rico'),
+      'Member', 'Non-Member'
+    )
+  )
+#labels for plots ----
+#basic plot labels
+p_xy <-
+  ggplot(df, aes(x = lifeExp, y = gdpPercap, size = pop)) +
+  geom_point(aes(color = g20, shape = g20))
+  print(p_xy)
+##basic labels
+p_xy +
+  labs(
+    x = "Life Expectancy",
+    y = "GDP per Capita",
+    color = 'Group of 20',
+    shape = 'G20 Member',
+    title = "Wealth and Longevity",
+    subtitle = "in the Americas, 1952-2007",
+    caption = "SOURCE: Gapminder Data"
+  )
+#put a + here and delete second pxy to make it all one table
+  ## Labels as Data
+p_xy +
+  geom_label(
+    data= filter(df, gdpPercap > 40000 | lifeExp <40 ),
+    # data = filter(df, country %in% c('United States', 'Haiti)) # will put haiti label on the bottom if swapped with above 
+    #use the | 'or' tab more. you need it to solve problems. it is a new vocabulary tool
+    aes(label = country),
+    nudge_x = -1,
+    hjust = 1,
+    size = 4
+    #can also do vjust for heigh, can also change font, text size, etc.
+    #can use geom_repel package to make size go automatically without having to make two codes
+  )
+
+#+SCALES----
+#+all aestehtics mapping can be scaled
+#+from basic axes to clors and line types
+#+scales in the ggplot world defined by
+#+- limits
+#+ -breaks
+#  - labels and values 
+
+
+## base plot
+p_trend <-
+  df |>
+  group_by(year, g20) |>
+  summarise(
+    avgExp = mean(lifeExp)
+  ) |>
+  ggplot(aes(x = year, y = avgExp, color = g20, linetype = g20)) +
+  geom_point()+
+  geom_line() #here u can add linetype = to change what kind it is
+print(p_trend)  
+
+#scales for continuous mappings
+p_trend +
+  theme_classic()+
+  scale_x_continuous(
+    limits = c(1940, 2020), 
+    breaks = seq(1940, 2015, 25),
+    labels = c('First Tom\nand Jerry\nEpisode', '1965', 'Year of\n1990', '2015') # \ drops 1990 to a second line below
+  ) +
+  scale_y_continuous(
+    limits = c(0, 90), #expands y limit to not zoom into the data
+    expand = expansion(mult = c(0, .1)) #kill the ghost: NECESSARY IN ALL PLOTS 
+  )
+
+p_xy +
+  scale_size_continuous(
+    breaks = seq(100000000, 400000000, 100000000),
+    range = c(0.3, 5)
+  )
+## Scales for discrete mapping 
+p_trend +
+  scale_color_manual(
+    values = c('navy', 'brown4')
+  ) +
+  scale_linetype_manual(
+    values = c('dotted', 'solid')
+  )
+##zoom or clip (limits vs coord)
+a <- p_xy +
+  geom_smooth(aes(group = g20)) 
+
+b <- p_xy +
+  geom_smooth(aes(group = g20))+
+  scale_x_continuous(
+    limits = c(60, 70) #removes all data outside of the scale. will change the line
+      )
+c <- p_xy +
+  geom_smooth(aes(group = g20))+
+  coord_cartesian(
+    xlim = c(60,70)  #zooms in without deleting the data. use this to zoom in in an intereting 
+  #segment of data without changing how the smoothing line calculates
+  )
+
+a+b+c & #+plot_layout(guides = 'collect') will absorb the legends into one spot, then
+  #can use ggplot to change up the aestethics
+  theme(legend.position = 'none')
+#using scales filters data
+#using coord zooms in and out 
+
+#themes -----
+#+control visual style of plot
+#+if you know the names (grammar),
+#+you can find it and change it
+#+
+#+canned themes
+ p_trend +
+  theme(
+    axis.text = element_text(face ='bold'),
+    panel.grid.major = element_line(color = 'green'),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = 'brown4'),
+    legend.position = 'top',
+    plot.background = element_rect(fill= 'lightblue')
+      )
+#set your own theme
+mytheme <-
+  theme(
+    axis.text = element_text(face ='bold'),
+    panel.grid.major = element_line(color = 'green'),
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = 'brown4'),
+    legend.position = 'top',
+    plot.background = element_rect(fill= 'green')
+  )
+##now use it
+p_trend +
+  mytheme
+
+#FINDING A MESSAGE ----
+#+ there is no one recipe for good visuals
+#+ but typlical stories to tell
+#+ generally fall into categories below
+
+#+ variation and middle:
+filter(df, year == 2007) |>
+  ggplot(aes(x = lifeExp)) +
+  geom_boxplot()
+
+#covariation
+p_xy
+##changes over time
+p_box <-
+  df |>
+  ggplot(aes(x = year, y = lifeExp, group = year))+
+  geom_boxplot()
+(p_box)
+##extreme value
+outliers <-
+  layer_data(p_box) |>
+  select(year = x, lifeExp = outliers) |>
+  unnest(2) |>
+  inner_join(df)
+
+p_box +
+  geom_text(
+    data = outliers,
+    aes(label = country),
+    vjust = 1
+  )
+
+#mappable bonus knowledge
+dmap <-
+  filter(df, year == 1957) %>%
+  left_join(
+    map_data("world"),
+    by = join_by("country" == "region")
+  )
+ggplot(dmap, aes(x = long, y = lat, group = group))+
+  geom_polygon(aes(fill = lifeExp))+
+  scale_fill_viridis_c()+
+    coord_map()
+   theme_void() #where is the USA?
+  

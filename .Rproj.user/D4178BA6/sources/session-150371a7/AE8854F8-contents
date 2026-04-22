@@ -1,0 +1,36 @@
+library(tidyverse)
+library(knitr)
+library(readxl) #for reading excel files 
+#read in data from excel
+dataweek <- read_excel('sharegreen.xlsx', sheet = 'Data') |>
+  filter(!is.na(City))
+#reads the data with the second sheet titled data and removes NA cities in the code
+
+#transform-----
+#create new variables with mutate
+#create rename and select all in one
+
+#create new variable
+
+dataweek2 <- dataweek |>
+  mutate(
+    city = City, #renames renames variables
+    green_chg = Green2020 - Green1990, #caluclate new var from old
+    green_goal = if_else(Green2020 > 20, 'Met', 'Not'),
+    .before = 1  
+  )
+#basic stats
+#+
+#+can use:
+#+summarise(
+#+ avg = mean()
+#+ min = min()
+#+ outputs as a tibble
+#+ count() also outputs
+dataweek |>
+  count(Region) |>
+  mutate(percent = n / sum(n) * 100)
+#also outputs as a tibble 
+#there is also various other group/summarize 
+#that i didnt write down because i was not paying attention
+

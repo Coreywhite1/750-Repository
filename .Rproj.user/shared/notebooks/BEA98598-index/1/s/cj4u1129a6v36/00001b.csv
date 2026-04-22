@@ -1,0 +1,4 @@
+"0","df <- read.csv('SDI.csv')  
+"
+"2","Error in file(file, ""rt"") : cannot open the connection
+"

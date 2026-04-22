@@ -1,0 +1,68 @@
+#+Jan 21 2026 SIS750----
+#+In class assignment using ggplot and greenspace data
+#+DATA:
+#+Greenspace and Sudden Unexpected Deaths
+
+
+
+#+Setup------------------------
+#setting working directory
+getwd()
+setwd("desktop/SIS 750")
+#Loading the Data
+library(tidyverse, ggplot2)
+Greenspacedata <- read_csv("greenspace and sudden death data.csv")
+
+#selecting columns to work with. use the select function to filter out certain columns and rows
+df2 <-
+ Greenspacedata|>
+  filter(Unemploy > median(Greenspacedata$Unemploy, na.rm = TRUE)) |> #identify rows/cases to keep. cases greater than median unemployment form the dataframe
+  select(CensusID,Medincome, Avecanopy)  #choose vars to work with, will come out in a tibble.
+  #above^ put the filter first so that the select function has the correct variable
+#write Data. will write to the working directory
+write_csv(df2)
+
+# Running a t.test for fun to see if i can add to the graph
+test1 <- Greenspacedata |>
+t.test()
+
+#GGPlot graph----
+ ggplot(
+  data = Greenspacedata,
+  mapping = aes(x = Medincome, y = Avecanopy)
+) +
+  geom_point(color = "blue",alpha =  0.5, mapping = aes(size = Tract_area,)) +
+  ggtitle("Tree Coverage by Income in Wake County")+
+  labs(
+    subtitle = "I hate R so bad",
+    x = "Median Household Income",
+    y = "Average Canopy Coverage",
+    size = "Area, sq. km"
+  )+
+  geom_(aes(test1$p.value))
+  #geom_smooth(method = "lm")
+
+
+
+
+
+
+
+
+
+
+Greenspacedata|>
+select(Medincome, Avecanopy)|>
+
+  
+
+remove(graph3)
+
+#GGPlot testing----
+graphtest <- ggplot(
+  data = Greenspacedata,
+  mapping = aes(x = Medincome, y = Avecanopy, size = Tract_area, color = Tract_area )
+) +
+  geom_point() +
+  geom_smooth(method = "lm")
+print(graphtest)

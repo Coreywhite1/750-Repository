@@ -1,0 +1,160 @@
+---
+title: "Problem Set 1 Corey White"
+format: html
+---
+
+---
+Setup
+```{r}
+library(tidyverse, ggplot2)
+df <- read_csv("greenspace_data_share.csv")
+```
+question 1 Script Correction
+
+```{r}
+#open my data
+gspace <- read_csv("greenspace_data_share.csv")
+#+Changed function to read a csv file rather than excel
+#+Added quotations to the name of the dataset to retrieve the dataset name
+#+Added an object name to use on the table
+
+#summarize average urban greenspace by region
+
+table <- #edit: added a dash to name the object "table"
+  gspace |>
+  group_by(Major_Geo_Region) |> #added a pipe function
+  summarise(
+    obs = n(), #added a comma after the parentheses
+    avg = mean(annual_avg_2020),
+   "weighted avg" = mean(annual_weight_avg_2020) 
+   #added quotations to allow for a space in the name
+  ) 
+
+#output as a table
+knitr::kable(table, digits = 1)#changed the function to read the object "table" rather than the dataset
+#added knitr:: to tell R to pull the kable function from knitr
+```
+
+Question 2
+The Greenspace data covers 1038 Urban Areas. I determined this by looking at the dataset and reading that the greenspace dataset contains 1038 observations.
+
+Question 3
+
+
+```{r}
+#3a
+
+dfhigh <-
+  gspace |>
+  select(City, peak_NDVI_2015) |>
+  filter(peak_NDVI_2015 >= 0.5)
+
+#there are 69 observations. 
+#3b
+
+dflow <-
+  gspace |>
+  select(peak_NDVI_2010, peak_NDVI_2015, peak_NDVI_2020, peak_NDVI_2021, Country, City) |>
+  filter(peak_NDVI_2010 < .2 | peak_NDVI_2015 <.2 | peak_NDVI_2020 <.2 | peak_NDVI_2021 < 0.2)
+#151 observations 
+
+#3c---- 
+dfavg <- df |>
+  select(annual_weight_avg_2010, annual_weight_avg_2020, Climate_region) |>
+  filter(annual_weight_avg_2010 < annual_weight_avg_2020) |>
+  group_by(Climate_region) |>
+  summarise(
+    obs = n()
+  )
+#there are 225 urban areas in arid climates that became greener
+```
+question 4 
+```{r}
+dfavggreen <- 
+  df |>
+  mutate(
+    avggreen = annual_avg_2021 - annual_avg_2010
+  )
+ ggplot(dfavggreen, aes(x = avggreen))+
+      geom_histogram(aes(x =avggreen, color = Major_Geo_Region, fill = Major_Geo_Region))
+```
+question 5
+```{r}
+    ggplot(gspace, aes(x = peak_weight_2010))+
+        geom_point(aes(x = peak_weight_2010, y = peak_weight_2021, color = Major_Geo_Region))
+```     
+      
+    
+    
+Question 6
+```{r}
+gainloss <- gspace |>
+  mutate(greengain = peak_weight_2021 > peak_weight_2010)
+```
+Now I created the scatterplot
+```{r}
+      ggplot(gainloss, aes(x = peak_weight_2010, y = peak_weight_2021, color = greengain))+
+        geom_point(alpha = .8) + 
+                scale_color_manual(
+                values = c(
+                 "TRUE" = "green",
+                 "FALSE" = "red"
+                     ))+
+      labs(
+        x = "Peak Weight 2010",
+        y = "Peak Weight 2021",
+        color = "Greenspace Gain"
+      )
+```   
+Question 7
+```{r}
+load("ssa_water.rdata")
+watertable <- water |>
+group_by(countryModule, interviewYear) |>
+summarise(
+  N = n(),
+  meanwalk = mean(waterTimeMins, na.rm = TRUE),
+  SDwalk = sd(waterTimeMins, na.rm = TRUE),
+  medwalk = median(waterTimeMins, na.rm = TRUE),
+  percentonplot =(sum(waterTimeMins == 0, na.rm = TRUE) / n()) * 100
+) |>
+filter(!is.na(meanwalk))
+#printing the table
+print(watertable, n= Inf )
+```
+Question 8 
+```{r}
+load("WordleDictionary2.rdata")
+wordletable <-
+wordle |>
+      pivot_longer(
+        cols = starts_with("let"),
+        values_to = "letter"
+      )
+wordletable2 <-wordletable |>
+count(letter, sort = TRUE) |>
+slice_max(n, n = 10) 
+print(wordletable2)
+```
+
+Question 9
+```{r}
+wordletable3 <- wordletable |>
+  semi_join(wordletable2, by = "letter")
+wordletable4 <- wordletable2 |>
+  left_join(wordletable, by = "letter") |>
+  filter(dups != TRUE)
+wordlescores <- wordletable4 |>
+  group_by(word) |>
+  summarise(points = sum(n) )|>
+  arrange(desc(points))
+topscore <- wordlescores |>
+  slice_max(points, n = 10)
+bottomscore <- wordlescores |>
+  slice_min(points, n =17)
+#printing the top 10 scoring words and the 17 words tied for lowest scoring
+Scorecard <- bind_rows(topscore, bottomscore)
+print(Scorecard, n = Inf)
+```
+
+Thank you for reading my problemset. 

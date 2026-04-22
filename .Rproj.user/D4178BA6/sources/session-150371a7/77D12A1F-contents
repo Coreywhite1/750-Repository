@@ -1,0 +1,157 @@
+# library
+library(tidyverse)
+library(rvest)
+library(chromote)
+library(janitor)
+library(knitr)
+library(kableExtra)
+library(polite)
+library(writexl)
+
+#using polite: 
+session <- bow("https://www.c-span.org", 
+               user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", delay = 5)
+#inspecting
+web <- read_html("https://www.c-span.org/congress/members/?chamber=senate&all")
+names <- web |>
+  html_nodes('.name') |>
+  html_text(trim = TRUE)
+(names)
+names2<-names[-1]
+(names2)
+partystates<- web |>
+  html_elements('.organization') |>
+  html_text(trim = TRUE)
+(partystates)
+party <- partystates |>
+  str_sub(1,1) 
+states <- partystates |>
+str_sub(3,4)
+(states)
+
+links <- web |>
+  html_elements('a.thumb') |>
+  html_attr('href')
+links2 <- paste0('https:', links)
+(links2)
+
+
+
+#Visit each senator's profile page: done in coordination with Brendan Joyce,
+#Maris Evans, and Microsoft Copilot.
+
+#I cannot for the life of me get R to successfully scrape more than two senators.
+#I have created a table and manually inputted the values for bills and 
+#common policy areas.
+# Senators and their bills.
+
+get_senator_info <- function(links2) {
+  
+  # Be polite — wait a random amount between requests
+  Sys.sleep(runif(1, 2, 5))
+  
+  tryCatch({
+    
+    browser$Network$enable()
+    browser$Page$navigate(links2)
+    Sys.sleep(10)
+    
+    # 119th congress
+    browser$Runtime$evaluate("
+      var dropdowns = document.querySelectorAll('select');
+      dropdowns.forEach(function(d) {
+        for (var i = 0; i < d.options.length; i++) {
+          if (d.options[i].text.includes('119')) {
+            d.value = d.options[i].value;
+            d.dispatchEvent(new Event('change', {bubbles:true}));
+            break;
+          }
+        }
+      });
+    ")
+    Sys.sleep(8)
+    
+    # Wait until "Bills Sponsored" appears on the page
+    for (try in 1:5) {
+      found <- browser$Runtime$evaluate(
+        "document.body.innerText.includes('Bills Sponsored') ? 'yes' : 'no'"
+      )$result$value
+      if (found == "yes") break
+      Sys.sleep(5)
+    }
+    
+    # Grab all the text from the page
+    page_text <- browser$Runtime$evaluate(
+      "document.body.innerText"
+    )$result$value
+    
+    # ── Read the bill count ───────────────────────────────────────────
+    # Looks for "Bills Sponsored: 34" and grabs the number
+    n_bills <- str_match(page_text, "Bills Sponsored:\\s*(\\d+)")[,2] |> as.integer()
+    
+    # ── Read the top legislative topic ────────────────────────────────
+    # Tries "Legislative Topics" first (specific topics like
+    # "Mental health"), then "Policy Areas" as backup (broad topics
+    # like "Health")
+    top_topic <- NA_character_
+    
+    # Try Legislative Topics first
+    lt <- str_match(
+      page_text,
+      "Commonly Sponsored Bill Legislative Topics:\\s*\\n([^\\n]+)"
+    )
+    if (!is.na(lt[1, 2]) && nchar(str_trim(lt[1, 2])) > 0) {
+      top_topic <- str_trim(lt[1, 2])
+    }
+    
+    # If no Legislative Topics found, try Policy Areas
+    if (is.na(top_topic)) {
+      pa <- str_match(
+        page_text,
+        "Commonly Sponsored Bill Policy Areas:\\s*\\n([^\\n]+)"
+      )
+      if (!is.na(pa[1, 2]) && nchar(str_trim(pa[1, 2])) > 0) {
+        top_topic <- str_trim(pa[1, 2])
+      }
+    } 
+    tibble(bills = n_bills, topic = top_topic)
+  }, error = function(e) {
+    tibble(bills = NA_integer_, topic = NA_character_)
+})
+}
+tableview<-map_dfr(links2, get_senator_info)
+
+#combining the table
+senatorstable <- tibble(
+  name = names2,
+  party = party,
+  state = states,
+  link = links2,
+) |>
+  bind_cols(tableview) |>
+  clean_names()
+
+View(senatorstable)
+write_xlsx(senatorstable, path ='senatorstable.xlsx')
+
+#making a function: ----- 
+
+#this function will return median values for a dataset.
+medians2 <- function(data, grouping, var) {
+  tibble1 <-
+    data |>
+    group_by({{ grouping }}) |>
+    summarize(
+      medians = median({{ var }}, na.rm = T)
+    ) |>
+    kable(
+      digits = 1L,
+      caption = rlang::englue("Mean of {{var}} by {{grouping}}")
+    )
+  return(tibble1)
+}
+#using the median value function on the Penguins dataset,
+#bill length grouped by sex
+medians2(data =penguins, 
+         var = bill_len, 
+         grouping = sex)
